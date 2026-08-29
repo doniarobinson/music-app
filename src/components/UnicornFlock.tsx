@@ -21,11 +21,18 @@ const UNICORN_SIZE = 56;
  * flight, since that wait has no fixed duration. Fixed/pointer-events-none
  * so it overlays without blocking anything, and purely decorative
  * (aria-hidden) — the "Digging…" text label carries the actual
- * loading-state semantics for reduced-motion / accessibility purposes.
+ * loading-state semantics.
+ *
+ * Reduced-motion users don't get nothing: globals.css swaps the flight
+ * animation for a calm static row of the same unicorns via the
+ * `unicorn-flock-container` / `unicorn-flock-item` classes below.
  */
 export function UnicornFlock() {
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div
+      className="unicorn-flock-container fixed inset-0 z-50 overflow-hidden pointer-events-none"
+      aria-hidden="true"
+    >
       {FLOCK.map((u, i) => (
         <span
           key={i}

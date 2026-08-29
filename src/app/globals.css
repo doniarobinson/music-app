@@ -102,12 +102,29 @@ h1, h2, h3, .font-display {
   100% { transform: translate(130vw, -130vh) rotate(20deg) scale(1.1); opacity: 0; }
 }
 
-/* Reduced-motion users still see the "Digging…" text label (rendered
-   alongside this component) — that carries the actual loading-state
-   semantics, so hiding the flying unicorns here loses no information. */
+/* Reduced-motion users get a calm, static row of the same unicorns instead
+   of the flying animation — not just the "Digging…" text with nothing else.
+   Overrides the container to a centered flex row and the items to sit in
+   that flow (rather than the fixed/absolute flight positioning) with the
+   animation itself turned off. */
 @media (prefers-reduced-motion: reduce) {
+  .unicorn-flock-container {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    /* Vertically centered in the viewport rather than anchored near the
+       submit button — the button can be anywhere depending on scroll
+       position when it was clicked, so this avoids covering its label. */
+  }
   .unicorn-flock-item {
+    position: static;
+    inset: auto;
     animation: none;
-    opacity: 0;
+    opacity: 1;
+    transform: none;
   }
 }
