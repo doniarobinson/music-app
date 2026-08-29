@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+:root {
+  /* Base surfaces */
+  --background: #0b0b12;
+  --surface: #16141f;
+  --surface-raised: #1e1b2b;
+  --foreground: #f2f1f7;
+  --foreground-muted: #b8b5c6;
+
+  /* 80s synthwave accents — verified for WCAG AA when used per the rules
+     documented alongside each: text-sized uses need 4.5:1 on --background,
+     large-text/UI-chrome uses need 3:1. */
+  --pink: #ff6ec7;   /* text-safe hot pink (4.5:1+ on --background) */
+  --teal: #4df2df;   /* text-safe teal (4.5:1+ on --background) */
+  --purple: #c792ff; /* text-safe purple (4.5:1+ on --background) */
+
+  --pink-strong: #ff2e9a;   /* deeper, more saturated — chrome/borders/large text only */
+  --teal-strong: #00e5cc;   /* deeper, more saturated — chrome/borders/large text only */
+  --purple-strong: #9d4edd; /* deeper, more saturated — chrome/borders/large text only */
+
+  --danger: #ff6b6b;
+  --focus-ring: var(--teal);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-pink: var(--pink);
+  --color-teal: var(--teal);
+  --color-purple: var(--purple);
+  --color-pink-strong: var(--pink-strong);
+  --color-teal-strong: var(--teal-strong);
+  --color-purple-strong: var(--purple-strong);
+  --font-display: var(--font-righteous);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-righteous), var(--font-inter), system-ui, sans-serif;
+}
+
+/* Visible focus ring everywhere — required for AA keyboard-navigation support,
+   easy to lose with custom-styled buttons/checkboxes/sliders. */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
