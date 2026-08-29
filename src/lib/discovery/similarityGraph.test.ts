@@ -4,7 +4,7 @@ import { walkSimilarityGraph } from "./similarityGraph";
 describe("walkSimilarityGraph", () => {
   const seeds = [{ id: "1", name: "Aphex Twin" }];
 
-  it("respects the breadth cap per node", async () => {
+  it("respects the breadth cap per node after sampling down from a wider fetch", async () => {
     const getSimilar = vi.fn(async () =>
       Array.from({ length: 50 }, (_, i) => ({ name: `Artist ${i}` }))
     );
@@ -13,8 +13,34 @@ describe("walkSimilarityGraph", () => {
       similarPerNode: 5,
       maxCandidates: 1000,
     });
-    expect(getSimilar).toHaveBeenCalledWith("Aphex Twin", 5);
+    // Fetches a wider pool than similarPerNode (see FETCH_MULTIPLIER) so
+    // there's something to randomly sample from, then trims to the cap.
+    expect(getSimilar).toHaveBeenCalledWith("Aphex Twin", 15);
     expect(result.length).toBeLessThanOrEqual(5);
+  });
+
+  it("samples a different subset across calls instead of always the deterministic top-N", async () => {
+    const getSimilar = vi.fn(async () =>
+      Array.from({ length: 50 }, (_, i) => ({ name: `Artist ${i}` }))
+    );
+    let seed = 1;
+    const rng = () => {
+      // simple deterministic-but-varying sequence, distinct per call site
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    };
+
+    const runOnce = () =>
+      walkSimilarityGraph(
+        seeds,
+        getSimilar,
+        { depth: 1, similarPerNode: 5, maxCandidates: 1000 },
+        rng
+      );
+
+    const first = (await runOnce()).map((c) => c.name).sort();
+    const second = (await runOnce()).map((c) => c.name).sort();
+    expect(first).not.toEqual(second);
   });
 
   it("respects the hard maxCandidates cap even with a large graph", async () => {

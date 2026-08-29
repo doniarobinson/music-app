@@ -35,6 +35,13 @@ function dedupeCandidates(candidates: CandidateArtist[]): CandidateArtist[] {
  * the whole request on a single upstream error, and every stage that fans
  * out one request per candidate (tag filter, listener lookup, track
  * resolution) runs those requests concurrently, bounded, internally.
+ *
+ * Candidate *fetching* itself is randomized (tagCandidates' page selection,
+ * similarityGraph's per-node sampling), not just the final sample — Last.fm's
+ * tag charts and similar-artist lists are fixed, deterministically-ranked
+ * data, so without that, identical searches (or clicking "Regenerate" on the
+ * results page) would always draw from the same handful of artists no
+ * matter how randomized the final selection step was.
  */
 export async function runDiscoveryPipeline(
   params: DiscoveryParams,
@@ -45,11 +52,17 @@ export async function runDiscoveryPipeline(
       ? fetchTagCandidates(
           [...params.genreTags, ...params.moodTags],
           deps.getTopArtistsForTag,
-          DEFAULT_TAG_CANDIDATE_LIMITS
+          DEFAULT_TAG_CANDIDATE_LIMITS,
+          deps.rng
         )
       : Promise.resolve([]),
     params.seedArtists.length > 0
-      ? walkSimilarityGraph(params.seedArtists, deps.getSimilarArtists, DEFAULT_GRAPH_LIMITS)
+      ? walkSimilarityGraph(
+          params.seedArtists,
+          deps.getSimilarArtists,
+          DEFAULT_GRAPH_LIMITS,
+          deps.rng
+        )
       : Promise.resolve([]),
   ]);
 
