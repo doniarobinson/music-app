@@ -6,6 +6,7 @@ import { ArtistSeedInput } from "@/components/ArtistSeedInput";
 import { ObscuritySlider } from "@/components/ObscuritySlider";
 import { GenreMoodCheckboxes } from "@/components/GenreMoodCheckboxes";
 import { Sticker } from "@/components/Sticker";
+import { UnicornFlock } from "@/components/UnicornFlock";
 import { GENRE_TAGS, MOOD_TAGS } from "@/lib/curatedTags";
 import { DISCOVERY_PARAMS_KEY, DISCOVERY_RESULTS_KEY } from "@/lib/discoveryStorage";
 
@@ -61,70 +62,73 @@ export default function QuestionnairePage() {
   }
 
   return (
-    <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-16 flex flex-col gap-12">
-      <h1 className="font-display text-4xl text-center flex items-center justify-center gap-3">
-        <Sticker kind="star" color="pink" size={36} rotate={-12} />
-        <span>
-          <span className="text-pink">Tune</span> the dig
-        </span>
-        <Sticker kind="star" color="pink" size={36} rotate={12} />
-      </h1>
+    <>
+      {submitting && <UnicornFlock />}
+      <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-16 flex flex-col gap-12">
+        <h1 className="font-display text-4xl text-center flex items-center justify-center gap-3">
+          <Sticker kind="star" color="pink" size={36} rotate={-12} />
+          <span>
+            <span className="text-pink">Tune</span> the dig
+          </span>
+          <Sticker kind="star" color="pink" size={36} rotate={12} />
+        </h1>
 
-      <section>
-        <h2 className="font-display text-xl text-teal mb-4 flex items-center gap-2">
-          <Sticker kind="burst" color="teal" size={28} rotate={-10} />
-          1. Genre
-        </h2>
-        <GenreMoodCheckboxes options={[...GENRE_TAGS]} selected={genreTags} onToggle={toggleGenre} />
-      </section>
+        <section>
+          <h2 className="font-display text-xl text-teal mb-4 flex items-center gap-2">
+            <Sticker kind="burst" color="teal" size={28} rotate={-10} />
+            1. Genre
+          </h2>
+          <GenreMoodCheckboxes options={[...GENRE_TAGS]} selected={genreTags} onToggle={toggleGenre} />
+        </section>
 
-      <section>
-        <h2 className="font-display text-xl text-teal mb-4 flex items-center gap-2">
-          <Sticker kind="heart" color="pink" size={28} rotate={8} />
-          2. Mood
-        </h2>
-        <GenreMoodCheckboxes options={[...MOOD_TAGS]} selected={moodTags} onToggle={toggleMood} />
-      </section>
+        <section>
+          <h2 className="font-display text-xl text-teal mb-4 flex items-center gap-2">
+            <Sticker kind="heart" color="pink" size={28} rotate={8} />
+            2. Mood
+          </h2>
+          <GenreMoodCheckboxes options={[...MOOD_TAGS]} selected={moodTags} onToggle={toggleMood} />
+        </section>
 
-      <section>
-        <h2 className="font-display text-xl text-teal mb-4 flex items-center gap-2">
-          <Sticker kind="cassette" color="purple" size={28} rotate={-6} />
-          3. Seed artists
-        </h2>
-        <ArtistSeedInput selected={seedArtists} onChange={setSeedArtists} max={MAX_SEEDS} />
-      </section>
+        <section>
+          <h2 className="font-display text-xl text-teal mb-4 flex items-center gap-2">
+            <Sticker kind="cassette" color="purple" size={28} rotate={-6} />
+            3. Seed artists
+          </h2>
+          <ArtistSeedInput selected={seedArtists} onChange={setSeedArtists} max={MAX_SEEDS} />
+        </section>
 
-      <section>
-        <h2 className="font-display text-xl text-teal mb-4 flex items-center gap-2">
-          <Sticker kind="bolt" color="teal" size={28} rotate={10} />
-          4. How deep?
-        </h2>
-        <ObscuritySlider value={obscuritySlider} onChange={setObscuritySlider} />
-      </section>
+        <section>
+          <h2 className="font-display text-xl text-teal mb-4 flex items-center gap-2">
+            <Sticker kind="bolt" color="teal" size={28} rotate={10} />
+            4. How deep?
+          </h2>
+          <ObscuritySlider value={obscuritySlider} onChange={setObscuritySlider} />
+        </section>
 
-      {!canSubmit && (
-        <p className="text-foreground-muted text-center text-sm">
-          Pick at least one genre/mood tag or one seed artist to search from.
-        </p>
-      )}
+        {!canSubmit && (
+          <p className="text-foreground-muted text-center text-sm">
+            Pick at least one genre/mood tag or one seed artist to search from.
+          </p>
+        )}
 
-      {submitError && (
-        <p className="text-danger text-center" role="alert">
-          {submitError}
-        </p>
-      )}
+        {submitError && (
+          <p className="text-danger text-center" role="alert">
+            {submitError}
+          </p>
+        )}
 
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={!canSubmit || submitting}
-        className="self-center rounded-full px-10 py-4 font-display text-2xl text-background
-                   bg-gradient-to-r from-pink-strong to-teal-strong
-                   disabled:opacity-40 disabled:cursor-not-allowed
-                   transition-transform hover:enabled:scale-[1.03]"
-      >
-        {submitting ? "Digging…" : "Find deep cuts"}
-      </button>
-    </main>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!canSubmit || submitting}
+          className="self-center rounded-full px-10 py-4 font-display text-2xl text-background
+                     bg-gradient-to-r from-pink-strong to-teal-strong
+                     disabled:opacity-40 disabled:cursor-not-allowed
+                     transition-transform hover:enabled:scale-[1.03]"
+        >
+          {submitting ? "Digging…" : "Find deep cuts"}
+        </button>
+      </main>
+    </>
   );
 }
