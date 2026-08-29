@@ -8,11 +8,11 @@ export default function Home() {
       </h1>
       <p className="max-w-xl text-lg text-foreground-muted">
         Spotify&apos;s &ldquo;made for you&rdquo; keeps handing back songs you already know.
-        Connect your account, tell us how deep to dig, and we&apos;ll surface the
-        stuff it won&apos;t.
+        Pick some genres, moods, or artists, tell us how deep to dig, and
+        we&apos;ll surface the stuff it won&apos;t — no login required.
       </p>
       <Link
-        href="/login"
+        href="/questionnaire"
         className="mt-4 inline-block rounded-full px-8 py-3 font-display text-2xl text-background
                    bg-gradient-to-r from-teal-strong to-purple-strong
                    shadow-[0_0_24px_rgba(0,229,204,0.3)]

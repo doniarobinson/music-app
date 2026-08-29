@@ -6,3 +6,22 @@ export interface LastfmSimilarArtist {
 export interface LastfmTag {
   name: string;
 }
+
+export interface LastfmArtistSearchResult {
+  name: string;
+  listeners: number;
+}
+
+export interface LastfmArtistInfo {
+  name: string;
+  listeners: number;
+  playcount: number;
+  url: string;
+}
+
+export interface LastfmTrack {
+  name: string;
+  artistName: string;
+  playcount: number;
+  url: string;
+}

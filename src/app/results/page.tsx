@@ -101,7 +101,7 @@ export default function ResultsPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
         {results.map((track) => (
-          <ResultCard key={track.spotifyTrackId} track={track} />
+          <ResultCard key={`${track.artistName}-${track.trackName}`} track={track} />
         ))}
       </div>
     </main>

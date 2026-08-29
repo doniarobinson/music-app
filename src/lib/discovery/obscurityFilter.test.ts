@@ -1,22 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { filterByObscurity } from "./obscurityFilter";
+import { filterByObscurity, sliderToListenerCeiling } from "./obscurityFilter";
+
+describe("sliderToListenerCeiling", () => {
+  it("is monotonically increasing", () => {
+    const ceilings = [0, 25, 50, 75, 100].map(sliderToListenerCeiling);
+    for (let i = 1; i < ceilings.length; i++) {
+      expect(ceilings[i]).toBeGreaterThan(ceilings[i - 1]);
+    }
+  });
+
+  it("clamps out-of-range input", () => {
+    expect(sliderToListenerCeiling(-10)).toBe(sliderToListenerCeiling(0));
+    expect(sliderToListenerCeiling(200)).toBe(sliderToListenerCeiling(100));
+  });
+});
 
 describe("filterByObscurity", () => {
-  const tracks = [{ popularity: 0 }, { popularity: 40 }, { popularity: 100 }];
+  const candidates = [
+    { listeners: 50 },
+    { listeners: 10_000 },
+    { listeners: 10_000_000 },
+  ];
 
-  it("keeps tracks at or below the ceiling, drops those above", () => {
-    expect(filterByObscurity(tracks, 40).map((t) => t.popularity)).toEqual([0, 40]);
+  it("keeps only candidates at or below the slider's listener ceiling", () => {
+    const result = filterByObscurity(candidates, 0);
+    expect(result.map((c) => c.listeners)).toEqual([50]);
+  });
+
+  it("passes everything through at slider 100", () => {
+    expect(filterByObscurity(candidates, 100)).toHaveLength(3);
   });
 
   it("includes the boundary value (inclusive)", () => {
-    expect(filterByObscurity(tracks, 0).map((t) => t.popularity)).toEqual([0]);
-  });
-
-  it("passes everything through at ceiling 100", () => {
-    expect(filterByObscurity(tracks, 100)).toHaveLength(3);
-  });
-
-  it("drops everything at ceiling below the minimum popularity", () => {
-    expect(filterByObscurity([{ popularity: 1 }], 0)).toEqual([]);
+    const ceiling = sliderToListenerCeiling(50);
+    const result = filterByObscurity([{ listeners: ceiling }], 50);
+    expect(result).toHaveLength(1);
   });
 });

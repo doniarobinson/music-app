@@ -32,9 +32,9 @@ export async function walkSimilarityGraph(
   const seen = new Set<string>(seeds.map((s) => normalizeName(s.name)));
   const results = new Map<string, CandidateArtist>();
 
-  let frontier: { name: string; fromSeed: string }[] = seeds.map((s) => ({
+  let frontier: { name: string; source: string }[] = seeds.map((s) => ({
     name: s.name,
-    fromSeed: s.name,
+    source: s.name,
   }));
 
   for (let hop = 0; hop < limits.depth && frontier.length > 0; hop++) {
@@ -58,9 +58,9 @@ export async function walkSimilarityGraph(
         seen.add(key);
 
         if (results.size < limits.maxCandidates) {
-          results.set(key, { name: s.name, fromSeed: node.fromSeed });
+          results.set(key, { name: s.name, source: node.source });
         }
-        nextFrontier.push({ name: s.name, fromSeed: node.fromSeed });
+        nextFrontier.push({ name: s.name, source: node.source });
       }
 
       if (results.size >= limits.maxCandidates) break;

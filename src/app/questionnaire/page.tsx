@@ -1,80 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { SeedSelector } from "@/components/SeedSelector";
+import { ArtistSeedInput } from "@/components/ArtistSeedInput";
 import { ObscuritySlider } from "@/components/ObscuritySlider";
 import { GenreMoodCheckboxes } from "@/components/GenreMoodCheckboxes";
+import { GENRE_TAGS, MOOD_TAGS } from "@/lib/curatedTags";
 import { DISCOVERY_PARAMS_KEY, DISCOVERY_RESULTS_KEY } from "@/lib/discoveryStorage";
 
 const MAX_SEEDS = 5;
 
-interface Seed {
-  id: string;
-  name: string;
-}
-
 export default function QuestionnairePage() {
   const router = useRouter();
-  const [seeds, setSeeds] = useState<Seed[]>([]);
-  const [tagOptions, setTagOptions] = useState<string[]>([]);
-  const [selectedSeedIds, setSelectedSeedIds] = useState<string[]>([]);
-  const [obscurityMax, setObscurityMax] = useState(40);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [loadState, setLoadState] = useState<"loading" | "ready" | "error" | "unauthenticated">(
-    "loading"
-  );
+  const [seedArtists, setSeedArtists] = useState<string[]>([]);
+  const [genreTags, setGenreTags] = useState<string[]>([]);
+  const [moodTags, setMoodTags] = useState<string[]>([]);
+  const [obscuritySlider, setObscuritySlider] = useState(20);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/seeds")
-      .then(async (res) => {
-        if (res.status === 401) {
-          setLoadState("unauthenticated");
-          return;
-        }
-        if (!res.ok) throw new Error("failed");
-        const data = await res.json();
-        setSeeds(data.seeds);
-        setTagOptions(data.tagOptions);
-        setLoadState("ready");
-      })
-      .catch(() => setLoadState("error"));
-  }, []);
-
-  useEffect(() => {
-    if (loadState === "unauthenticated") {
-      router.replace("/login");
-    }
-  }, [loadState, router]);
-
-  function toggleSeed(id: string) {
-    setSelectedSeedIds((prev) =>
-      prev.includes(id)
-        ? prev.filter((s) => s !== id)
-        : prev.length < MAX_SEEDS
-          ? [...prev, id]
-          : prev
-    );
+  function toggleGenre(tag: string) {
+    setGenreTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   }
 
-  function toggleTag(tag: string) {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
+  function toggleMood(tag: string) {
+    setMoodTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   }
+
+  const canSubmit = seedArtists.length > 0 || genreTags.length + moodTags.length > 0;
 
   async function handleSubmit() {
     setSubmitting(true);
     setSubmitError(null);
 
-    const seedArtists = seeds.filter((s) => selectedSeedIds.includes(s.id));
     const params = {
-      seedArtists,
-      obscurityMax,
-      genreTags: selectedTags,
-      moodTags: [] as string[],
+      seedArtists: seedArtists.map((name) => ({ name })),
+      genreTags,
+      moodTags,
+      obscuritySlider,
     };
 
     try {
@@ -83,10 +46,6 @@ export default function QuestionnairePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
       });
-      if (res.status === 401) {
-        router.replace("/login");
-        return;
-      }
       if (!res.ok) throw new Error("discovery request failed");
       const data = await res.json();
 
@@ -100,22 +59,6 @@ export default function QuestionnairePage() {
     }
   }
 
-  if (loadState === "loading" || loadState === "unauthenticated") {
-    return (
-      <main className="flex-1 flex items-center justify-center">
-        <p className="text-foreground-muted">Loading your listening history…</p>
-      </main>
-    );
-  }
-
-  if (loadState === "error") {
-    return (
-      <main className="flex-1 flex items-center justify-center">
-        <p className="text-danger">Couldn&apos;t load your Spotify data. Please refresh.</p>
-      </main>
-    );
-  }
-
   return (
     <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-16 flex flex-col gap-12">
       <h1 className="font-display text-4xl text-center">
@@ -123,24 +66,30 @@ export default function QuestionnairePage() {
       </h1>
 
       <section>
-        <h2 className="font-display text-xl text-teal mb-4">1. Seed artists</h2>
-        <SeedSelector
-          seeds={seeds}
-          selected={selectedSeedIds}
-          onToggle={toggleSeed}
-          max={MAX_SEEDS}
-        />
+        <h2 className="font-display text-xl text-teal mb-4">1. Genre</h2>
+        <GenreMoodCheckboxes options={[...GENRE_TAGS]} selected={genreTags} onToggle={toggleGenre} />
       </section>
 
       <section>
-        <h2 className="font-display text-xl text-teal mb-4">2. How deep?</h2>
-        <ObscuritySlider value={obscurityMax} onChange={setObscurityMax} />
+        <h2 className="font-display text-xl text-teal mb-4">2. Mood</h2>
+        <GenreMoodCheckboxes options={[...MOOD_TAGS]} selected={moodTags} onToggle={toggleMood} />
       </section>
 
       <section>
-        <h2 className="font-display text-xl text-teal mb-4">3. Genre &amp; mood</h2>
-        <GenreMoodCheckboxes options={tagOptions} selected={selectedTags} onToggle={toggleTag} />
+        <h2 className="font-display text-xl text-teal mb-4">3. Seed artists</h2>
+        <ArtistSeedInput selected={seedArtists} onChange={setSeedArtists} max={MAX_SEEDS} />
       </section>
+
+      <section>
+        <h2 className="font-display text-xl text-teal mb-4">4. How deep?</h2>
+        <ObscuritySlider value={obscuritySlider} onChange={setObscuritySlider} />
+      </section>
+
+      {!canSubmit && (
+        <p className="text-foreground-muted text-center text-sm">
+          Pick at least one genre/mood tag or one seed artist to search from.
+        </p>
+      )}
 
       {submitError && (
         <p className="text-danger text-center" role="alert">
@@ -151,7 +100,7 @@ export default function QuestionnairePage() {
       <button
         type="button"
         onClick={handleSubmit}
-        disabled={selectedSeedIds.length === 0 || submitting}
+        disabled={!canSubmit || submitting}
         className="self-center rounded-full px-10 py-4 font-display text-2xl text-background
                    bg-gradient-to-r from-pink-strong to-teal-strong
                    disabled:opacity-40 disabled:cursor-not-allowed

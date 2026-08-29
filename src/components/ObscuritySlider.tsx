@@ -23,7 +23,7 @@ export function ObscuritySlider({ value, onChange }: ObscuritySliderProps) {
                    bg-gradient-to-r from-teal-strong via-purple-strong to-pink-strong"
       />
       <p className="mt-2 text-center font-display text-purple">
-        Popularity ceiling: {value}
+        Obscurity level: {value}
       </p>
     </div>
   );

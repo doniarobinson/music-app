@@ -11,14 +11,6 @@ export function GenreMoodCheckboxes({
   selected,
   onToggle,
 }: GenreMoodCheckboxesProps) {
-  if (options.length === 0) {
-    return (
-      <p className="text-foreground-muted text-sm">
-        No tags to show yet — pick some seed artists above first.
-      </p>
-    );
-  }
-
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
       {options.map((tag) => {

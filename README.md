@@ -1,46 +1,65 @@
 # Deep Cuts
 
 Spotify's own "made for you" recommendations rarely surface anything you
-haven't already brushed up against. This app authenticates your Spotify
-account (read-only, minimal scopes), asks a short questionnaire (seed
-artists, an obscurity slider, genre/mood tags), and returns tracks biased
-toward lesser-known music related to what you actually listen to.
+haven't already brushed up against. This app lets you pick genres, moods,
+and (optionally) a few seed artists, choose how obscure you want to go, and
+get back a grid of tracks with playable 30-second previews — no login, no
+account linking.
 
-## Why it doesn't use Spotify's own recommendation engine
+## Why there's no Spotify integration
 
-Any Spotify developer app created after Nov 27, 2024 permanently loses
-access to `/recommendations`, `/audio-features`, `/audio-analysis`, and
-`/artists/{id}/related-artists` — there's no replacement. So this app builds
-its own discovery layer: Spotify still provides auth, your real listening
-history, and `popularity` scores (the obscurity signal); **Last.fm** (free,
-non-commercial API) supplies the similar-artist graph and genre/mood tags
-Spotify no longer exposes.
+Spotify has frozen new developer app creation dashboard-wide since early
+2026 ("New integrations are currently on hold while we make updates to
+improve reliability and performance") with no timeline given — see the
+[Spotify Community megathread](https://community.spotify.com/t5/Spotify-for-Developers/New-integrations-are-currently-on-hold/td-p/7296575).
+That made a Spotify-account-based version of this app a dead end, so it's
+built entirely on APIs that don't require creating a new app:
 
-There's no database — session tokens live in an encrypted httpOnly cookie,
-and questionnaire/result state lives in your browser's `localStorage`.
+- **[Last.fm](https://www.last.fm/api)** (free, keyless-friction API — just
+  a registered key, no app-review process) supplies artist search,
+  similar-artist graphs, genre/mood folksonomy tags, top-tracks-per-artist,
+  and listener counts (our obscurity signal, in place of Spotify's old
+  popularity score).
+- **[Deezer](https://developers.deezer.com/api)**'s public search endpoint
+  is fully keyless and returns a real 30-second preview-mp3 URL per track,
+  which is what powers the inline players on the results grid.
+
+There's no database and no auth — nothing to log into, nothing stored
+server-side. The only thing that persists is the last search's params/results
+in your browser's `localStorage`, purely so the results page survives a
+refresh and "regenerate" can resubmit the same query.
+
+## How discovery works
+
+1. **Candidates** come from two optional, combinable sources: Last.fm's
+   tag charts for any genre/mood tags you pick, and a similarity-graph walk
+   outward from up to 5 seed artists you type in. At least one of the two
+   is required.
+2. **Tag filtering** narrows the combined pool to artists actually carrying
+   your selected genre/mood tags.
+3. **Obscurity filtering** drops anything above the listener-count ceiling
+   your slider implies (log-scaled — Last.fm listener counts span from
+   dozens to tens of millions).
+4. **Track resolution** pulls each surviving artist's top tracks from
+   Last.fm, then resolves each to a Deezer preview; anything without a
+   preview match is dropped.
+5. **Weighted-random sampling** picks the final ~24 tracks, biased toward
+   lower listener counts but genuinely randomized run to run (with a cap on
+   how many tracks one artist can contribute), which is what "regenerate"
+   demonstrates.
 
 ## Setup
 
-1. **Spotify app** — create one at the
-   [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
-   Under its settings, add these exact redirect URIs:
-   - `http://127.0.0.1:3000/api/auth/callback` (local dev — Spotify requires
-     `127.0.0.1`, not `localhost`)
-   - `https://<your-production-domain>/api/auth/callback` (once deployed)
-
-2. **Last.fm API key** — grab one free at
+1. **Last.fm API key** — free at
    [last.fm/api/account/create](https://www.last.fm/api/account/create).
-
-3. **Env vars** — copy `.env.local.example` to `.env.local` and fill in:
-   `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REDIRECT_URI`,
-   `LASTFM_API_KEY`, `SESSION_SECRET` (generate with `openssl rand -base64 32`).
-
-4. **Install & run**:
+2. Copy `.env.local.example` to `.env.local` and fill in `LASTFM_API_KEY`.
+   (Deezer needs no key at all.)
+3. **Install & run**:
    ```bash
    npm install
    npm run dev
    ```
-   Visit `http://127.0.0.1:3000`.
+   Visit `http://localhost:3000`.
 
 ## Scripts
 
@@ -54,22 +73,19 @@ and questionnaire/result state lives in your browser's `localStorage`.
 1. Push this repo to GitHub.
 2. Import it in the [Vercel dashboard](https://vercel.com/new) — it
    auto-detects Next.js.
-3. Add the same env vars from `.env.local` in Vercel's Project Settings →
-   Environment Variables, with `SPOTIFY_REDIRECT_URI` pointed at your
-   production domain.
-4. Add that production redirect URI to the Spotify app's settings too.
-5. Every push to `main` auto-deploys. Note: Vercel preview-deployment URLs
-   are dynamic per-deploy and won't match a registered Spotify redirect URI,
-   so OAuth only fully works on production + local dev for now — not PR
-   previews.
+3. Add `LASTFM_API_KEY` in Vercel's Project Settings → Environment Variables.
+4. Every push to `main` auto-deploys, previews included — no redirect-URI
+   registration or per-environment config needed, since there's no OAuth.
 
 ## Project layout
 
-- `src/lib/spotify/` — OAuth2 (Authorization Code + PKCE) and API client
-- `src/lib/lastfm/` — similar-artist graph + tag lookups
-- `src/lib/discovery/` — the actual discovery pipeline (seed extraction →
-  similarity walk → tag filter → Spotify cross-reference → obscurity filter
-  → dedupe → weighted-random sample), each stage a pure, independently
-  tested function
-- `src/app/api/` — route handlers wiring the above together
-- `src/app/{login,questionnaire,results}/` — the three pages of the flow
+- `src/lib/lastfm/` — artist search, similarity graph, tags, top-tracks,
+  listener counts
+- `src/lib/deezer/` — preview-track lookup
+- `src/lib/discovery/` — the actual discovery pipeline (tag/seed candidate
+  generation → merge → tag filter → listener lookup → obscurity filter →
+  track+preview resolution → weighted-random sample), each stage a pure,
+  independently tested function
+- `src/app/api/` — `artist-search` (type-ahead) and `discover` (runs the
+  pipeline) route handlers
+- `src/app/{questionnaire,results}/` — the two pages of the flow

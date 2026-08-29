@@ -1,65 +1,57 @@
 export interface SeedArtist {
-  id: string;
   name: string;
-}
-
-export interface LibraryTrackRef {
-  id: string;
-  artistIds: string[];
 }
 
 export interface CandidateArtist {
   name: string;
-  /** Which seed(s) this candidate was reached from, for future explainability. */
-  fromSeed: string;
+  /** Which seed/tag this candidate was reached from, for future explainability. */
+  source: string;
 }
 
 export interface TaggedCandidate extends CandidateArtist {
   tags: string[];
 }
 
+export interface CandidateWithListeners extends TaggedCandidate {
+  listeners: number;
+}
+
 export interface ResolvedCandidateTrack {
-  spotifyTrackId: string;
   trackName: string;
   artistName: string;
-  spotifyArtistId: string;
-  popularity: number;
-  albumImageUrl: string | null;
-  spotifyUrl: string;
+  /** Artist-level Last.fm listener count — our obscurity signal (no Spotify popularity anymore). */
+  listeners: number;
+  previewUrl: string;
+  albumArtUrl: string | null;
+  lastfmUrl: string;
 }
 
 export type DiscoveryResult = ResolvedCandidateTrack;
 
 export interface DiscoveryParams {
   seedArtists: SeedArtist[];
-  /** Popularity ceiling, 0-100. Lower = more obscure. */
-  obscurityMax: number;
   genreTags: string[];
   moodTags: string[];
+  /** 0-100 UI slider value; mapped internally to a listener-count ceiling on a log scale. */
+  obscuritySlider: number;
   resultCount?: number;
 }
 
 /** Dependencies injected into the pipeline so each stage is unit-testable without live APIs. */
 export interface DiscoveryDeps {
-  getSimilarArtists: (artistName: string, limit?: number) => Promise<{ name: string; match: number }[]>;
+  getSimilarArtists: (artistName: string, limit?: number) => Promise<{ name: string }[]>;
   getTopTags: (artistName: string) => Promise<{ name: string }[]>;
-  searchArtistByName: (name: string) => Promise<{
-    id: string;
-    name: string;
-    popularity: number;
-  } | null>;
-  searchTracksByArtist: (
+  getTopArtistsForTag: (tag: string, page: number, limit?: number) => Promise<string[]>;
+  getArtistInfo: (
+    artistName: string
+  ) => Promise<{ name: string; listeners: number } | null>;
+  getTopTracksForArtist: (
     artistName: string,
     limit?: number
-  ) => Promise<
-    {
-      id: string;
-      name: string;
-      popularity: number;
-      artists: { id: string; name: string }[];
-      album: { images: { url: string }[] };
-      external_urls: { spotify: string };
-    }[]
-  >;
+  ) => Promise<{ name: string; artistName: string; url: string }[]>;
+  findTrackPreview: (
+    artistName: string,
+    trackName: string
+  ) => Promise<{ previewUrl: string; albumArtUrl: string | null; deezerUrl: string } | null>;
   rng?: () => number;
 }

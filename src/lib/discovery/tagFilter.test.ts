@@ -3,8 +3,8 @@ import { fetchAndFilterByTags } from "./tagFilter";
 
 describe("fetchAndFilterByTags", () => {
   const candidates = [
-    { name: "Boards of Canada", fromSeed: "Aphex Twin" },
-    { name: "Some Pop Artist", fromSeed: "Aphex Twin" },
+    { name: "Boards of Canada", source: "Aphex Twin" },
+    { name: "Some Pop Artist", source: "Aphex Twin" },
   ];
 
   it("passes everything through when no tags are selected", async () => {

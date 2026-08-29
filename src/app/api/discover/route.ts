@@ -1,27 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
-  getSavedTracks,
-  getTopArtists,
-  getTopTracks,
-  searchArtistByName,
-  searchTracksByArtist,
-  SpotifyAuthError,
-} from "@/lib/spotify/client";
-import { getSimilarArtists, getTopTags } from "@/lib/lastfm/client";
+  getArtistInfo,
+  getSimilarArtists,
+  getTopArtistsForTag,
+  getTopTags,
+  getTopTracksForArtist,
+} from "@/lib/lastfm/client";
+import { findTrackPreview } from "@/lib/deezer/client";
 import { runDiscoveryPipeline } from "@/lib/discovery/pipeline";
 
 const MAX_SEED_ARTISTS = 5;
 
-const requestSchema = z.object({
-  seedArtists: z
-    .array(z.object({ id: z.string(), name: z.string() }))
-    .min(1)
-    .max(MAX_SEED_ARTISTS),
-  obscurityMax: z.number().min(0).max(100),
-  genreTags: z.array(z.string()).default([]),
-  moodTags: z.array(z.string()).default([]),
-});
+const requestSchema = z
+  .object({
+    seedArtists: z.array(z.object({ name: z.string() })).max(MAX_SEED_ARTISTS).default([]),
+    genreTags: z.array(z.string()).default([]),
+    moodTags: z.array(z.string()).default([]),
+    obscuritySlider: z.number().min(0).max(100),
+  })
+  .refine((v) => v.seedArtists.length > 0 || v.genreTags.length + v.moodTags.length > 0, {
+    message: "Pick at least one seed artist or one genre/mood tag",
+  });
 
 export async function POST(request: NextRequest) {
   let body: unknown;
@@ -40,40 +40,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Re-fetch the user's library fresh (no cache/DB) to dedupe results
-    // against what they already listen to.
-    const [topArtists, topTracks, savedTracks] = await Promise.all([
-      getTopArtists("long_term", 50),
-      getTopTracks("long_term", 50),
-      getSavedTracks(50),
-    ]);
-
-    const library = {
-      trackIds: new Set([...topTracks, ...savedTracks].map((t) => t.id)),
-      artistIds: new Set(topArtists.map((a) => a.id)),
-    };
-
-    const results = await runDiscoveryPipeline(
-      {
-        seedArtists: parsed.data.seedArtists,
-        obscurityMax: parsed.data.obscurityMax,
-        genreTags: parsed.data.genreTags,
-        moodTags: parsed.data.moodTags,
-      },
-      {
-        getSimilarArtists,
-        getTopTags,
-        searchArtistByName,
-        searchTracksByArtist,
-      },
-      library
-    );
+    const results = await runDiscoveryPipeline(parsed.data, {
+      getSimilarArtists,
+      getTopTags,
+      getTopArtistsForTag,
+      getArtistInfo,
+      getTopTracksForArtist,
+      findTrackPreview,
+    });
 
     return NextResponse.json({ results });
   } catch (err) {
-    if (err instanceof SpotifyAuthError) {
-      return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
-    }
     console.error("[/api/discover]", err);
     return NextResponse.json({ error: "discovery_failed" }, { status: 502 });
   }
