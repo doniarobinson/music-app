@@ -1,11 +1,32 @@
 import Link from "next/link";
+import { Sticker } from "@/components/Sticker";
 
 export default function Home() {
   return (
-    <main className="flex-1 flex flex-col items-center justify-center text-center px-6 py-24 gap-6">
-      <h1 className="font-display text-5xl sm:text-6xl">
-        <span className="text-pink">Deep</span> <span className="text-teal">Cuts</span>
-      </h1>
+    <main className="flex-1 flex flex-col items-center justify-center text-center px-6 py-24 gap-6 relative overflow-hidden">
+      <Sticker
+        kind="bolt"
+        color="teal"
+        size={56}
+        rotate={-16}
+        className="absolute top-[18%] left-[12%] hidden sm:block"
+      />
+      <Sticker
+        kind="burst"
+        color="purple"
+        size={70}
+        rotate={12}
+        className="absolute bottom-[15%] right-[10%] hidden sm:block"
+      />
+
+      <div className="flex items-center gap-3">
+        <Sticker kind="star" color="pink" size={44} rotate={-14} />
+        <h1 className="font-display text-5xl sm:text-6xl">
+          <span className="text-pink">Boombox</span> <span className="text-teal">B-Sides</span>
+        </h1>
+        <Sticker kind="note" color="teal" size={44} rotate={16} />
+      </div>
+
       <p className="max-w-xl text-lg text-foreground-muted">
         Spotify&apos;s &ldquo;made for you&rdquo; keeps handing back songs you already know.
         Pick some genres, moods, or artists, tell us how deep to dig, and

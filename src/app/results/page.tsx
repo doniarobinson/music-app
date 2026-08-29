@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ResultCard } from "@/components/ResultCard";
+import { Sticker } from "@/components/Sticker";
 import { DISCOVERY_PARAMS_KEY, DISCOVERY_RESULTS_KEY } from "@/lib/discoveryStorage";
 import type { DiscoveryResult } from "@/lib/discovery/types";
 
@@ -78,8 +79,11 @@ export default function ResultsPage() {
   return (
     <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-16 flex flex-col gap-8">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <h1 className="font-display text-4xl">
-          <span className="text-teal">Your</span> <span className="text-pink">deep cuts</span>
+        <h1 className="font-display text-4xl flex items-center gap-3">
+          <Sticker kind="burst" color="pink" size={40} rotate={-10} />
+          <span>
+            <span className="text-teal">Your</span> <span className="text-pink">deep cuts</span>
+          </span>
         </h1>
         <button
           type="button"

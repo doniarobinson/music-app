@@ -56,3 +56,21 @@ h1, h2, h3, .font-display {
   outline-offset: 2px;
   border-radius: 2px;
 }
+
+/* Puffy-sticker resting tilt + hover wobble (see Sticker.tsx). The wobble
+   animation itself is skipped for reduced-motion users rather than forced
+   on everyone; the resting tilt (not motion) still applies either way. */
+.sticker-wiggle {
+  transform: rotate(var(--sticker-rotate, -8deg));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sticker-wiggle:hover {
+    animation: sticker-wiggle 0.5s ease-in-out;
+  }
+}
+
+@keyframes sticker-wiggle {
+  0%, 100% { transform: rotate(var(--sticker-rotate, -8deg)) scale(1); }
+  30% { transform: rotate(calc(var(--sticker-rotate, -8deg) - 10deg)) scale(1.08); }
+  60% { transform: rotate(calc(var(--sticker-rotate, -8deg) + 6deg)) scale(1.08); }
+}

@@ -14,7 +14,7 @@ const righteous = Righteous({
 });
 
 export const metadata: Metadata = {
-  title: "Deep Cuts",
+  title: "Boombox B-Sides",
   description:
     "Find music Spotify's own algorithm won't show you — dig deeper, go more obscure.",
 };

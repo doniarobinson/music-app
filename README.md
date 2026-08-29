@@ -1,4 +1,4 @@
-# Deep Cuts
+# Boombox B-Sides
 
 Spotify's own "made for you" recommendations rarely surface anything you
 haven't already brushed up against. This app lets you pick genres, moods,
