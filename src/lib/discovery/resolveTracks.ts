@@ -1,3 +1,4 @@
+import { mapWithConcurrency } from "@/lib/concurrency";
 import type { CandidateWithListeners, ResolvedCandidateTrack } from "./types";
 
 type GetTopTracksFn = (
@@ -10,6 +11,8 @@ type FindPreviewFn = (
   trackName: string
 ) => Promise<{ previewUrl: string; albumArtUrl: string | null; deezerUrl: string } | null>;
 
+const DEFAULT_CONCURRENCY = 6;
+
 /**
  * Turns surviving candidate artists into actual playable tracks: pulls each
  * artist's top tracks from Last.fm (their own endpoint, not the deprecated
@@ -17,41 +20,48 @@ type FindPreviewFn = (
  * Deezer match are dropped — the inline 30s preview is the whole point of a
  * result card, so an unplayable one isn't worth keeping (this is a
  * discovery feature, not an exhaustive index; silent drops are acceptable).
+ *
+ * Artists are processed concurrently (bounded), and each artist's tracks are
+ * resolved to previews in parallel too — this used to be fully sequential
+ * (one top-tracks call, then one Deezer call at a time, artist after
+ * artist), which was the main reason a full discovery run could take well
+ * over a minute.
  */
 export async function resolveTracksWithPreviews(
   candidates: CandidateWithListeners[],
   deps: { getTopTracksForArtist: GetTopTracksFn; findTrackPreview: FindPreviewFn },
-  tracksPerArtist = 3
+  tracksPerArtist = 3,
+  concurrency = DEFAULT_CONCURRENCY
 ): Promise<ResolvedCandidateTrack[]> {
-  const results: ResolvedCandidateTrack[] = [];
-
-  for (const candidate of candidates) {
+  const perArtist = await mapWithConcurrency(candidates, concurrency, async (candidate) => {
     let tracks: { name: string; artistName: string; url: string }[] = [];
     try {
       tracks = await deps.getTopTracksForArtist(candidate.name, tracksPerArtist);
     } catch {
-      continue;
+      return [] as ResolvedCandidateTrack[];
     }
 
-    for (const track of tracks) {
-      let preview: Awaited<ReturnType<FindPreviewFn>> = null;
-      try {
-        preview = await deps.findTrackPreview(candidate.name, track.name);
-      } catch {
-        continue;
-      }
-      if (!preview) continue;
+    const resolved = await Promise.all(
+      tracks.map(async (track): Promise<ResolvedCandidateTrack | null> => {
+        try {
+          const preview = await deps.findTrackPreview(candidate.name, track.name);
+          if (!preview) return null;
+          return {
+            trackName: track.name,
+            artistName: candidate.name,
+            listeners: candidate.listeners,
+            previewUrl: preview.previewUrl,
+            albumArtUrl: preview.albumArtUrl,
+            lastfmUrl: track.url,
+          };
+        } catch {
+          return null;
+        }
+      })
+    );
 
-      results.push({
-        trackName: track.name,
-        artistName: candidate.name,
-        listeners: candidate.listeners,
-        previewUrl: preview.previewUrl,
-        albumArtUrl: preview.albumArtUrl,
-        lastfmUrl: track.url,
-      });
-    }
-  }
+    return resolved.filter((r): r is ResolvedCandidateTrack => r !== null);
+  });
 
-  return results;
+  return perArtist.flat();
 }

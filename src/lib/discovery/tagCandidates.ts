@@ -10,10 +10,14 @@ export interface TagCandidateLimits {
   maxCandidates: number;
 }
 
+// Kept modest on purpose: every candidate here still needs a listener
+// lookup and (if it survives) a top-tracks + Deezer-preview resolution —
+// 80 candidates is already generous headroom for a ~24-track final sample,
+// and keeps a full discovery run from taking well over a minute.
 export const DEFAULT_TAG_CANDIDATE_LIMITS: TagCandidateLimits = {
-  pagesPerTag: 4,
-  artistsPerPage: 30,
-  maxCandidates: 200,
+  pagesPerTag: 3,
+  artistsPerPage: 20,
+  maxCandidates: 80,
 };
 
 /**

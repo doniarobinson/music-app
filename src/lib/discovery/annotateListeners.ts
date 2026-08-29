@@ -1,32 +1,37 @@
+import { mapWithConcurrency } from "@/lib/concurrency";
 import type { CandidateWithListeners, TaggedCandidate } from "./types";
 
 type GetArtistInfoFn = (
   artistName: string
 ) => Promise<{ name: string; listeners: number } | null>;
 
+const DEFAULT_CONCURRENCY = 6;
+
 /**
  * Attaches Last.fm's artist-level listener count to each candidate — our
- * obscurity signal now that Spotify's popularity score is gone. Candidates
- * Last.fm has no info for at all are dropped (can't judge obscurity for an
- * artist with no data).
+ * obscurity signal now that Spotify's popularity score is gone. Fetched
+ * concurrently (bounded) rather than one at a time. Candidates Last.fm has
+ * no info for at all are dropped (can't judge obscurity for an artist with
+ * no data).
  */
 export async function annotateWithListeners(
   candidates: TaggedCandidate[],
-  getArtistInfo: GetArtistInfoFn
+  getArtistInfo: GetArtistInfoFn,
+  concurrency = DEFAULT_CONCURRENCY
 ): Promise<CandidateWithListeners[]> {
-  const results: CandidateWithListeners[] = [];
-
-  for (const candidate of candidates) {
-    let info: { name: string; listeners: number } | null = null;
+  const infos = await mapWithConcurrency(candidates, concurrency, async (candidate) => {
     try {
-      info = await getArtistInfo(candidate.name);
+      return await getArtistInfo(candidate.name);
     } catch {
-      continue;
+      return null;
     }
-    if (!info) continue;
+  });
 
-    results.push({ ...candidate, listeners: info.listeners });
-  }
+  const results: CandidateWithListeners[] = [];
+  candidates.forEach((candidate, i) => {
+    const info = infos[i];
+    if (info) results.push({ ...candidate, listeners: info.listeners });
+  });
 
   return results;
 }

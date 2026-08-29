@@ -10,30 +10,6 @@ import type { CandidateArtist, DiscoveryDeps, DiscoveryParams, DiscoveryResult }
 
 const DEFAULT_RESULT_COUNT = 24;
 
-/**
- * Runs a bounded async task pool so we never burst past a handful of
- * concurrent requests to Last.fm/Deezer at once (both have rate limits and
- * we have no cache layer to absorb retries).
- */
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let index = 0;
-
-  async function worker() {
-    while (index < items.length) {
-      const current = index++;
-      results[current] = await fn(items[current]);
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
-  return results;
-}
-
 function dedupeCandidates(candidates: CandidateArtist[]): CandidateArtist[] {
   const seen = new Map<string, CandidateArtist>();
   for (const c of candidates) {
@@ -56,7 +32,9 @@ function dedupeCandidates(candidates: CandidateArtist[]): CandidateArtist[] {
  * one must be present (enforced by the route handler's request schema) —
  * an empty pipeline has nothing to search from.
  * Each stage degrades gracefully (skips failing nodes) rather than failing
- * the whole request on a single upstream error.
+ * the whole request on a single upstream error, and every stage that fans
+ * out one request per candidate (tag filter, listener lookup, track
+ * resolution) runs those requests concurrently, bounded, internally.
  */
 export async function runDiscoveryPipeline(
   params: DiscoveryParams,
@@ -86,21 +64,10 @@ export async function runDiscoveryPipeline(
   const withListeners = await annotateWithListeners(tagged, deps.getArtistInfo);
   const withinObscurity = filterByObscurity(withListeners, params.obscuritySlider);
 
-  // Track + preview resolution is the most request-heavy stage (a top-tracks
-  // call plus a Deezer search per track) — throttle concurrency here.
-  const resolvedBatches = await mapWithConcurrency(chunk(withinObscurity, 5), 3, (batch) =>
-    resolveTracksWithPreviews(batch, {
-      getTopTracksForArtist: deps.getTopTracksForArtist,
-      findTrackPreview: deps.findTrackPreview,
-    })
-  );
-  const resolved = resolvedBatches.flat();
+  const resolved = await resolveTracksWithPreviews(withinObscurity, {
+    getTopTracksForArtist: deps.getTopTracksForArtist,
+    findTrackPreview: deps.findTrackPreview,
+  });
 
   return sampleWeightedByObscurity(resolved, params.resultCount ?? DEFAULT_RESULT_COUNT, deps.rng);
-}
-
-function chunk<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
-  return chunks;
 }
