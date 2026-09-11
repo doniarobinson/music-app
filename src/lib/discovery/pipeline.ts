@@ -82,5 +82,9 @@ export async function runDiscoveryPipeline(
     findTrackPreview: deps.findTrackPreview,
   });
 
+  console.log(
+    `[runDiscoveryPipeline] candidates=${candidates.length} tagged=${tagged.length} withListeners=${withListeners.length} withinObscurity=${withinObscurity.length} resolved=${resolved.length}`
+  );
+
   return sampleWeightedByObscurity(resolved, params.resultCount ?? DEFAULT_RESULT_COUNT, deps.rng);
 }
