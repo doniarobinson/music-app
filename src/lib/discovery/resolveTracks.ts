@@ -34,6 +34,9 @@ export async function resolveTracksWithPreviews(
   tracksPerArtist = 3,
   concurrency = DEFAULT_CONCURRENCY
 ): Promise<ResolvedCandidateTrack[]> {
+  let tracksAttempted = 0;
+  let previewsFound = 0;
+
   const perArtist = await mapWithConcurrency(candidates, concurrency, async (candidate) => {
     let tracks: { name: string; artistName: string; url: string }[] = [];
     try {
@@ -46,9 +49,11 @@ export async function resolveTracksWithPreviews(
 
     const resolved = await Promise.all(
       tracks.map(async (track): Promise<ResolvedCandidateTrack | null> => {
+        tracksAttempted++;
         try {
           const preview = await deps.findTrackPreview(candidate.name, track.name);
           if (!preview) return null;
+          previewsFound++;
           return {
             trackName: track.name,
             artistName: candidate.name,
@@ -67,6 +72,10 @@ export async function resolveTracksWithPreviews(
 
     return resolved.filter((r): r is ResolvedCandidateTrack => r !== null);
   });
+
+  console.log(
+    `[resolveTracksWithPreviews] tracksAttempted=${tracksAttempted} previewsFound=${previewsFound}`
+  );
 
   return perArtist.flat();
 }

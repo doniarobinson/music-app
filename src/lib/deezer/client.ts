@@ -28,7 +28,11 @@ export async function findTrackPreview(
 
   const data = (await res.json()) as {
     data?: { preview: string; link: string; album?: { cover_medium?: string } }[];
+    error?: { type: string; message: string; code: number };
   };
+  if (data.error) {
+    console.error(`[findTrackPreview] Deezer error for "${artistName} – ${trackName}":`, data.error);
+  }
   const match = data.data?.[0];
   if (!match || !match.preview) return null;
 
