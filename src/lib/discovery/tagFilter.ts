@@ -1,4 +1,5 @@
 import { mapWithConcurrency } from "@/lib/concurrency";
+import { LastfmAuthError } from "@/lib/lastfm/client";
 import type { CandidateArtist, TaggedCandidate } from "./types";
 
 type GetTopTagsFn = (artistName: string) => Promise<{ name: string }[]>;
@@ -41,7 +42,9 @@ export async function fetchAndFilterByTags(
     try {
       const raw = await getTopTags(name);
       tagsByName.set(name, raw.map((t) => t.name));
-    } catch {
+    } catch (err) {
+      if (err instanceof LastfmAuthError) throw err;
+      console.error(`[fetchAndFilterByTags] skipping "${name}":`, err);
       tagsByName.set(name, []); // graceful degradation: treat as untagged rather than failing the batch
     }
   });

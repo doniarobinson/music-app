@@ -48,8 +48,14 @@ export default function QuestionnairePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
       });
-      if (!res.ok) throw new Error("discovery request failed");
       const data = await res.json();
+      if (!res.ok) {
+        if (data.error === "invalid_api_key") {
+          setSubmitError(data.message);
+          return;
+        }
+        throw new Error("discovery request failed");
+      }
 
       localStorage.setItem(DISCOVERY_PARAMS_KEY, JSON.stringify(params));
       localStorage.setItem(DISCOVERY_RESULTS_KEY, JSON.stringify(data.results));

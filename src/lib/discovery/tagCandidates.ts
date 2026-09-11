@@ -1,5 +1,6 @@
 import { mapWithConcurrency } from "@/lib/concurrency";
 import { normalizeName } from "@/lib/nameNormalize";
+import { LastfmAuthError } from "@/lib/lastfm/client";
 import type { CandidateArtist } from "./types";
 
 type GetTopArtistsForTagFn = (tag: string, page: number, limit?: number) => Promise<string[]>;
@@ -80,7 +81,9 @@ export async function fetchTagCandidates(
     try {
       const names = await getTopArtistsForTag(tag, page, limits.artistsPerPage);
       return { tag, names };
-    } catch {
+    } catch (err) {
+      if (err instanceof LastfmAuthError) throw err;
+      console.error(`[fetchTagCandidates] skipping tag "${tag}" page ${page}:`, err);
       return { tag, names: [] as string[] }; // this page failed — the tag's other randomly-picked pages might still work
     }
   });

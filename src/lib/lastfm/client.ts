@@ -9,6 +9,19 @@ import type {
 
 const API_BASE = "https://ws.audioscrobbler.com/2.0/";
 
+// Last.fm error codes that mean the API key itself is the problem, not the
+// request — see https://www.last.fm/api/errorcodes. Unlike a rate limit or a
+// single bad lookup, this affects every call the app makes, so it's surfaced
+// distinctly instead of being treated as a per-node failure.
+const AUTH_ERROR_CODES = new Set([4, 10, 26]);
+
+export class LastfmAuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "LastfmAuthError";
+  }
+}
+
 async function lastfmFetch<T>(method: string, params: Record<string, string>): Promise<T> {
   const env = getEnv();
   const url = new URL(API_BASE);
@@ -24,7 +37,17 @@ async function lastfmFetch<T>(method: string, params: Record<string, string>): P
     throw err;
   }
   if (!res.ok) {
-    throw new Error(`Last.fm API error ${res.status} on ${method}: ${await res.text()}`);
+    const text = await res.text();
+    let code: number | undefined;
+    try {
+      code = JSON.parse(text)?.error;
+    } catch {
+      // not JSON — fall through to the generic error below
+    }
+    if (code !== undefined && AUTH_ERROR_CODES.has(code)) {
+      throw new LastfmAuthError(`Last.fm API key rejected on ${method}: ${text}`);
+    }
+    throw new Error(`Last.fm API error ${res.status} on ${method}: ${text}`);
   }
   return res.json() as Promise<T>;
 }

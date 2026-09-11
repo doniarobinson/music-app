@@ -1,4 +1,5 @@
 import { normalizeName } from "@/lib/nameNormalize";
+import { LastfmAuthError } from "@/lib/lastfm/client";
 import type { CandidateArtist, SeedArtist } from "./types";
 
 export interface SimilarityGraphLimits {
@@ -77,7 +78,9 @@ export async function walkSimilarityGraph(
       let similar: { name: string }[] = [];
       try {
         similar = await getSimilar(node.name, fetchLimit);
-      } catch {
+      } catch (err) {
+        if (err instanceof LastfmAuthError) throw err;
+        console.error(`[walkSimilarityGraph] skipping "${node.name}":`, err);
         continue; // graceful degradation: skip this node, keep walking the rest
       }
 

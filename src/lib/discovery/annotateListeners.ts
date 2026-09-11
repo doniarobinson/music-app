@@ -1,4 +1,5 @@
 import { mapWithConcurrency } from "@/lib/concurrency";
+import { LastfmAuthError } from "@/lib/lastfm/client";
 import type { CandidateWithListeners, TaggedCandidate } from "./types";
 
 type GetArtistInfoFn = (
@@ -22,7 +23,9 @@ export async function annotateWithListeners(
   const infos = await mapWithConcurrency(candidates, concurrency, async (candidate) => {
     try {
       return await getArtistInfo(candidate.name);
-    } catch {
+    } catch (err) {
+      if (err instanceof LastfmAuthError) throw err;
+      console.error(`[annotateWithListeners] skipping "${candidate.name}":`, err);
       return null;
     }
   });

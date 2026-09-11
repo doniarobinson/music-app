@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { walkSimilarityGraph } from "./similarityGraph";
+import { LastfmAuthError } from "@/lib/lastfm/client";
 
 describe("walkSimilarityGraph", () => {
   const seeds = [{ id: "1", name: "Aphex Twin" }];
@@ -77,6 +78,19 @@ describe("walkSimilarityGraph", () => {
       maxCandidates: 100,
     });
     expect(result).toEqual([]);
+  });
+
+  it("propagates a LastfmAuthError instead of degrading gracefully", async () => {
+    const getSimilar = vi.fn(async () => {
+      throw new LastfmAuthError("Last.fm API key rejected");
+    });
+    await expect(
+      walkSimilarityGraph(seeds, getSimilar, {
+        depth: 1,
+        similarPerNode: 10,
+        maxCandidates: 100,
+      })
+    ).rejects.toBeInstanceOf(LastfmAuthError);
   });
 
   it("dedupes candidates reachable via multiple paths", async () => {

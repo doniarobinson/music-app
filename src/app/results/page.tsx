@@ -44,8 +44,14 @@ export default function ResultsPage() {
         headers: { "Content-Type": "application/json" },
         body: rawParams,
       });
-      if (!res.ok) throw new Error("failed");
       const data = await res.json();
+      if (!res.ok) {
+        if (data.error === "invalid_api_key") {
+          setError(data.message);
+          return;
+        }
+        throw new Error("failed");
+      }
       setResults(data.results);
       localStorage.setItem(DISCOVERY_RESULTS_KEY, JSON.stringify(data.results));
     } catch {

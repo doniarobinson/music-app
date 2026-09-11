@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { fetchAndFilterByTags } from "./tagFilter";
+import { LastfmAuthError } from "@/lib/lastfm/client";
 
 describe("fetchAndFilterByTags", () => {
   const candidates = [
@@ -41,6 +42,15 @@ describe("fetchAndFilterByTags", () => {
     });
     const result = await fetchAndFilterByTags(candidates, ["ambient"], getTopTags);
     expect(result).toEqual([]);
+  });
+
+  it("propagates a LastfmAuthError instead of treating it as untagged", async () => {
+    const getTopTags = vi.fn(async () => {
+      throw new LastfmAuthError("Last.fm API key rejected");
+    });
+    await expect(
+      fetchAndFilterByTags(candidates, ["ambient"], getTopTags)
+    ).rejects.toBeInstanceOf(LastfmAuthError);
   });
 
   it("caches tag lookups so no artist is fetched twice in one call", async () => {

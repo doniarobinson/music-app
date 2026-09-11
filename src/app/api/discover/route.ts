@@ -6,6 +6,7 @@ import {
   getTopArtistsForTag,
   getTopTags,
   getTopTracksForArtist,
+  LastfmAuthError,
 } from "@/lib/lastfm/client";
 import { findTrackPreview } from "@/lib/deezer/client";
 import { runDiscoveryPipeline } from "@/lib/discovery/pipeline";
@@ -52,6 +53,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ results });
   } catch (err) {
     console.error("[/api/discover]", err);
+    if (err instanceof LastfmAuthError) {
+      return NextResponse.json(
+        {
+          error: "invalid_api_key",
+          message: "API key is invalid. Please contact the developer to resolve this issue.",
+        },
+        { status: 500 }
+      );
+    }
     return NextResponse.json({ error: "discovery_failed" }, { status: 502 });
   }
 }

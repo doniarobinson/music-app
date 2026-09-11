@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { fetchTagCandidates } from "./tagCandidates";
+import { LastfmAuthError } from "@/lib/lastfm/client";
 
 function seededRng(seed: number) {
   let state = seed;
@@ -63,6 +64,20 @@ describe("fetchTagCandidates", () => {
       seededRng(1)
     );
     expect(result.length).toBeLessThanOrEqual(50);
+  });
+
+  it("propagates a LastfmAuthError instead of degrading gracefully", async () => {
+    const getTopArtistsForTag = vi.fn(async () => {
+      throw new LastfmAuthError("Last.fm API key rejected");
+    });
+    await expect(
+      fetchTagCandidates(
+        ["indie rock"],
+        getTopArtistsForTag,
+        { pagesPerTag: 3, artistsPerPage: 20, maxCandidates: 80, maxPageIndex: 15 },
+        seededRng(1)
+      )
+    ).rejects.toBeInstanceOf(LastfmAuthError);
   });
 
   it("picks different pages across separate calls, not the same fixed set every time", async () => {

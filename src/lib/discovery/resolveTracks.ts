@@ -1,4 +1,5 @@
 import { mapWithConcurrency } from "@/lib/concurrency";
+import { LastfmAuthError } from "@/lib/lastfm/client";
 import type { CandidateWithListeners, ResolvedCandidateTrack } from "./types";
 
 type GetTopTracksFn = (
@@ -37,7 +38,9 @@ export async function resolveTracksWithPreviews(
     let tracks: { name: string; artistName: string; url: string }[] = [];
     try {
       tracks = await deps.getTopTracksForArtist(candidate.name, tracksPerArtist);
-    } catch {
+    } catch (err) {
+      if (err instanceof LastfmAuthError) throw err;
+      console.error(`[resolveTracksWithPreviews] skipping "${candidate.name}":`, err);
       return [] as ResolvedCandidateTrack[];
     }
 
@@ -54,7 +57,9 @@ export async function resolveTracksWithPreviews(
             albumArtUrl: preview.albumArtUrl,
             lastfmUrl: track.url,
           };
-        } catch {
+        } catch (err) {
+          if (err instanceof LastfmAuthError) throw err;
+          console.error(`[resolveTracksWithPreviews] skipping "${candidate.name} – ${track.name}":`, err);
           return null;
         }
       })
