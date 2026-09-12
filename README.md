@@ -20,9 +20,13 @@ built entirely on APIs that don't require creating a new app:
   similar-artist graphs, genre/mood folksonomy tags, top-tracks-per-artist,
   and listener counts (our obscurity signal, in place of Spotify's old
   popularity score).
-- **[Deezer](https://developers.deezer.com/api)**'s public search endpoint
-  is fully keyless and returns a real 30-second preview-mp3 URL per track,
-  which is what powers the inline players on the results grid.
+- **[iTunes Search](https://performance-partners.apple.com/search-api)**'s
+  public search endpoint is fully keyless and returns a real 30-second
+  preview URL per track, which is what powers the inline players on the
+  results grid. (An earlier version used Deezer's equivalent endpoint, but
+  its shared per-IP rate limit turned out to be effectively always-exhausted
+  when called from Vercel's serverless functions — see the "search quota"
+  note below.)
 
 There's no database and no auth — nothing to log into, nothing stored
 server-side. The only thing that persists is the last search's params/results
@@ -41,19 +45,31 @@ refresh and "regenerate" can resubmit the same query.
    your slider implies (log-scaled — Last.fm listener counts span from
    dozens to tens of millions).
 4. **Track resolution** pulls each surviving artist's top tracks from
-   Last.fm, then resolves each to a Deezer preview; anything without a
-   preview match is dropped.
-5. **Weighted-random sampling** picks the final ~24 tracks, biased toward
+   Last.fm, then resolves each to an iTunes preview; anything without a
+   preview match is dropped. Only a modest batch of artists is resolved at
+   a time (backfilled from the rest of the pool if too few come back with a
+   match) rather than the whole candidate pool up front, to keep each
+   search's call volume to the keyless, per-IP-rate-limited iTunes API low.
+5. **Weighted-random sampling** picks the final ~10 tracks, biased toward
    lower listener counts but genuinely randomized run to run (with a cap on
    how many tracks one artist can contribute), which is what "regenerate"
    demonstrates.
+
+## Search quota
+
+There's no login or database, so a self-imposed daily search count (shown
+near the search/regenerate buttons) is tracked client-side in
+`localStorage` — purely to stay well clear of the iTunes Search API's
+per-IP rate limit, since there's no server-side way to enforce it across
+requests. It's informational only (never blocks searching) and resets
+automatically at local midnight, even without a page refresh.
 
 ## Setup
 
 1. **Last.fm API key** — free at
    [last.fm/api/account/create](https://www.last.fm/api/account/create).
 2. Copy `.env.local.example` to `.env.local` and fill in `LASTFM_API_KEY`.
-   (Deezer needs no key at all.)
+   (The iTunes Search API needs no key at all.)
 3. **Install & run**:
    ```bash
    npm install
@@ -81,7 +97,7 @@ refresh and "regenerate" can resubmit the same query.
 
 - `src/lib/lastfm/` — artist search, similarity graph, tags, top-tracks,
   listener counts
-- `src/lib/deezer/` — preview-track lookup
+- `src/lib/itunes/` — preview-track lookup
 - `src/lib/discovery/` — the actual discovery pipeline (tag/seed candidate
   generation → merge → tag filter → listener lookup → obscurity filter →
   track+preview resolution → weighted-random sample), each stage a pure,
