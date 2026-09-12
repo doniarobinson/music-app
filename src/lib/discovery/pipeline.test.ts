@@ -68,12 +68,23 @@ describe("runDiscoveryPipeline preview resolution", () => {
 
     const results = await runDiscoveryPipeline(baseParams, deps);
 
-    // 2 successful artists x 2 tracks each = 4 available, short of the
-    // requested 10 — degrades gracefully instead of crashing or looping.
-    expect(results).toHaveLength(4);
+    // Only 2 distinct artists ever resolve a preview, and the final sample
+    // keeps at most 1 track per artist — so 2 is the ceiling here, short of
+    // the requested 10, degrading gracefully instead of crashing or looping.
+    expect(results).toHaveLength(2);
     // Every candidate's 2 tracks (TRACKS_PER_ARTIST) were tried for a
     // preview, proving the whole pool was exhausted rather than giving up
     // after the first ~15-artist batch.
     expect(deps.findTrackPreview.mock.calls.length).toBe(POOL_SIZE * 2);
+  });
+
+  it("never includes two tracks from the same artist in the final results", async () => {
+    const evenIndices = new Set(Array.from({ length: POOL_SIZE }, (_, i) => i).filter((i) => i % 2 === 0));
+    const deps = makeDeps({ successfulArtistIndices: evenIndices });
+
+    const results = await runDiscoveryPipeline(baseParams, deps);
+
+    const artistNames = results.map((r) => r.artistName);
+    expect(new Set(artistNames).size).toBe(artistNames.length);
   });
 });

@@ -1,6 +1,10 @@
 import type { ResolvedCandidateTrack } from "./types";
 
-const DEFAULT_MAX_PER_ARTIST = 2;
+// One track per artist by default — with only ~10 final results (down from
+// the original 24), letting one artist contribute 2 tracks eats a big chunk
+// of a small list. A discovery app should surface more different artists,
+// not more songs from the same one.
+const DEFAULT_MAX_PER_ARTIST = 1;
 
 /** Shared by both samplers below: A-ES weighted-reservoir key, biased toward lower listener counts. */
 function weightedKey(listeners: number, rng: () => number): number {

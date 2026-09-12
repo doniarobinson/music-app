@@ -38,11 +38,17 @@ function dedupeCandidates(candidates: CandidateArtist[]): CandidateArtist[] {
 
 /**
  * Resolves previews for a growing subset of `pool` until either enough
- * tracks have survived to fill `resultCount` or the pool is exhausted —
- * rather than resolving the whole pool unconditionally. Each round pulls a
- * fresh weighted-random batch of artists not yet tried, so a low iTunes
- * hit-rate on the first batch is backfilled from the rest of the pool
- * instead of just returning fewer results than requested.
+ * DISTINCT ARTISTS have survived to fill `resultCount` or the pool is
+ * exhausted — rather than resolving the whole pool unconditionally. Each
+ * round pulls a fresh weighted-random batch of artists not yet tried, so a
+ * low iTunes hit-rate on the first batch is backfilled from the rest of the
+ * pool instead of just returning fewer results than requested.
+ *
+ * Counting distinct artists (not raw resolved-track count) matters because
+ * the final sample keeps at most one track per artist (see sampler.ts) — a
+ * pool of resolved tracks that's technically "big enough" but concentrated
+ * in a handful of artists would otherwise make this stop early and hand
+ * back fewer final results than requested.
  */
 async function resolveWithBackfill(
   pool: CandidateWithListeners[],
@@ -51,8 +57,9 @@ async function resolveWithBackfill(
 ): Promise<ResolvedCandidateTrack[]> {
   let remaining = pool;
   const resolved: ResolvedCandidateTrack[] = [];
+  const distinctArtists = new Set<string>();
 
-  while (resolved.length < resultCount && remaining.length > 0) {
+  while (distinctArtists.size < resultCount && remaining.length > 0) {
     const batchSize = Math.min(remaining.length, Math.ceil(resultCount * RESOLUTION_BATCH_MULTIPLIER));
     const batch = sampleArtistsByObscurity(remaining, batchSize, deps.rng);
     const batchKeys = new Set(batch.map((c) => normalizeName(c.name)));
@@ -64,6 +71,7 @@ async function resolveWithBackfill(
       TRACKS_PER_ARTIST
     );
     resolved.push(...newlyResolved);
+    newlyResolved.forEach((t) => distinctArtists.add(normalizeName(t.artistName)));
   }
 
   return resolved;
