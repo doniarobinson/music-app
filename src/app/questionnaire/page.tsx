@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { ArtistSeedInput } from "@/components/ArtistSeedInput";
 import { ObscuritySlider } from "@/components/ObscuritySlider";
 import { GenreMoodCheckboxes } from "@/components/GenreMoodCheckboxes";
+import { SearchQuotaBadge } from "@/components/SearchQuotaBadge";
 import { Sticker } from "@/components/Sticker";
 import { UnicornFlock } from "@/components/UnicornFlock";
 import { GENRE_TAGS, MOOD_TAGS } from "@/lib/curatedTags";
 import { DISCOVERY_PARAMS_KEY, DISCOVERY_RESULTS_KEY } from "@/lib/discoveryStorage";
+import { useSearchQuota } from "@/lib/useSearchQuota";
 
 const MAX_SEEDS = 5;
 
@@ -20,6 +22,7 @@ export default function QuestionnairePage() {
   const [obscuritySlider, setObscuritySlider] = useState(20);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const { remaining, dailyLimit, recordSearch } = useSearchQuota();
 
   function toggleGenre(tag: string) {
     setGenreTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
@@ -48,6 +51,7 @@ export default function QuestionnairePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params),
       });
+      recordSearch();
       const data = await res.json();
       if (!res.ok) {
         if (data.error === "invalid_api_key") {
@@ -134,6 +138,8 @@ export default function QuestionnairePage() {
         >
           {submitting ? "Digging…" : "Find deep cuts"}
         </button>
+
+        <SearchQuotaBadge remaining={remaining} dailyLimit={dailyLimit} />
       </main>
     </>
   );

@@ -52,6 +52,6 @@ export interface DiscoveryDeps {
   findTrackPreview: (
     artistName: string,
     trackName: string
-  ) => Promise<{ previewUrl: string; albumArtUrl: string | null; deezerUrl: string } | null>;
+  ) => Promise<{ previewUrl: string; albumArtUrl: string | null } | null>;
   rng?: () => number;
 }

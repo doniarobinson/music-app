@@ -21,7 +21,7 @@ export function ResultCard({ track }: { track: DiscoveryResult }) {
     <div className="rounded-xl bg-surface border-t-4 border-teal-strong overflow-hidden">
       <div className="aspect-square bg-surface-raised relative">
         {track.albumArtUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- external Deezer CDN, not worth next/image config for a v1
+          // eslint-disable-next-line @next/next/no-img-element -- external Apple CDN, not worth next/image config for a v1
           <img
             src={track.albumArtUrl}
             alt={`${track.trackName} album art`}

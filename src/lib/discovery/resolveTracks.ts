@@ -10,28 +10,31 @@ type GetTopTracksFn = (
 type FindPreviewFn = (
   artistName: string,
   trackName: string
-) => Promise<{ previewUrl: string; albumArtUrl: string | null; deezerUrl: string } | null>;
+) => Promise<{ previewUrl: string; albumArtUrl: string | null } | null>;
 
-const DEFAULT_CONCURRENCY = 6;
+// Kept modest (rather than the 6 used elsewhere in the pipeline) since the
+// iTunes Search API is keyless and rate-limited per source IP — see
+// itunes/client.ts.
+const DEFAULT_CONCURRENCY = 3;
 
 /**
  * Turns surviving candidate artists into actual playable tracks: pulls each
  * artist's top tracks from Last.fm (their own endpoint, not the deprecated
- * Spotify one), then resolves each to a Deezer preview. Tracks with no
- * Deezer match are dropped — the inline 30s preview is the whole point of a
+ * Spotify one), then resolves each to an iTunes preview. Tracks with no
+ * iTunes match are dropped — the inline 30s preview is the whole point of a
  * result card, so an unplayable one isn't worth keeping (this is a
  * discovery feature, not an exhaustive index; silent drops are acceptable).
  *
  * Artists are processed concurrently (bounded), and each artist's tracks are
  * resolved to previews in parallel too — this used to be fully sequential
- * (one top-tracks call, then one Deezer call at a time, artist after
+ * (one top-tracks call, then one preview call at a time, artist after
  * artist), which was the main reason a full discovery run could take well
  * over a minute.
  */
 export async function resolveTracksWithPreviews(
   candidates: CandidateWithListeners[],
   deps: { getTopTracksForArtist: GetTopTracksFn; findTrackPreview: FindPreviewFn },
-  tracksPerArtist = 3,
+  tracksPerArtist = 2,
   concurrency = DEFAULT_CONCURRENCY
 ): Promise<ResolvedCandidateTrack[]> {
   let tracksAttempted = 0;

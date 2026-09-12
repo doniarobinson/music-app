@@ -8,7 +8,7 @@ import {
   getTopTracksForArtist,
   LastfmAuthError,
 } from "@/lib/lastfm/client";
-import { findTrackPreview } from "@/lib/deezer/client";
+import { findTrackPreview } from "@/lib/itunes/client";
 import { runDiscoveryPipeline } from "@/lib/discovery/pipeline";
 
 const MAX_SEED_ARTISTS = 5;

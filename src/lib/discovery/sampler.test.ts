@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sampleWeightedByObscurity } from "./sampler";
+import { sampleArtistsByObscurity, sampleWeightedByObscurity } from "./sampler";
 
 function seededRng(seed: number) {
   let state = seed;
@@ -75,5 +75,41 @@ describe("sampleWeightedByObscurity", () => {
     expect(result).toHaveLength(6);
     const sameArtistCount = result.filter((r) => r.artistName === "Same Artist").length;
     expect(sameArtistCount).toBeLessThanOrEqual(2);
+  });
+});
+
+function makeArtist(id: number, listeners: number) {
+  return { name: `Artist ${id}`, source: "seed", tags: [], listeners };
+}
+
+describe("sampleArtistsByObscurity", () => {
+  it("returns all candidates if fewer than the requested count", () => {
+    const candidates = [makeArtist(1, 10), makeArtist(2, 20)];
+    expect(sampleArtistsByObscurity(candidates, 5)).toHaveLength(2);
+  });
+
+  it("returns exactly the requested count when there are enough candidates", () => {
+    const candidates = Array.from({ length: 50 }, (_, i) => makeArtist(i, i * 100));
+    const result = sampleArtistsByObscurity(candidates, 10, seededRng(42));
+    expect(result).toHaveLength(10);
+  });
+
+  it("never picks the same artist twice", () => {
+    const candidates = Array.from({ length: 50 }, (_, i) => makeArtist(i, i * 100));
+    const result = sampleArtistsByObscurity(candidates, 20, seededRng(7));
+    const names = result.map((r) => r.name);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("biases toward lower listener counts across many trials", () => {
+    const candidates = Array.from({ length: 100 }, (_, i) => makeArtist(i, (i + 1) * 1000));
+    let totalAvg = 0;
+    const trials = 200;
+    for (let t = 0; t < trials; t++) {
+      const sample = sampleArtistsByObscurity(candidates, 10, seededRng(t + 1));
+      totalAvg += sample.reduce((s, c) => s + c.listeners, 0) / sample.length;
+    }
+    const avgListenersOfSamples = totalAvg / trials;
+    expect(avgListenersOfSamples).toBeLessThan(40_000);
   });
 });

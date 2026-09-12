@@ -17,7 +17,7 @@ export interface TagCandidateLimits {
 const DEFAULT_CONCURRENCY = 6;
 
 // Kept modest on purpose: every candidate here still needs a listener
-// lookup and (if it survives) a top-tracks + Deezer-preview resolution —
+// lookup and (if it survives) a top-tracks + preview resolution —
 // 80 candidates is already generous headroom for a ~24-track final sample,
 // and keeps a full discovery run from taking well over a minute.
 export const DEFAULT_TAG_CANDIDATE_LIMITS: TagCandidateLimits = {
@@ -57,7 +57,7 @@ function pickRandomPages(count: number, maxPageIndex: number, rng: () => number)
  * the same order. Originally this always fetched pages 1..pagesPerTag
  * sequentially, which meant every "identical" search pulled from the exact
  * same ~60-80 artists every time, and everything downstream (tag filter,
- * obscurity cutoff, Deezer availability) is itself deterministic given a
+ * obscurity cutoff, preview availability) is itself deterministic given a
  * fixed input — so results barely varied between runs no matter how
  * "random" the final sampling step was. Randomizing *which* pages we pull
  * (see pickRandomPages) is what actually fixes that: different runs now

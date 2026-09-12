@@ -5,10 +5,27 @@ import { fetchAndFilterByTags } from "./tagFilter";
 import { annotateWithListeners } from "./annotateListeners";
 import { filterByObscurity } from "./obscurityFilter";
 import { resolveTracksWithPreviews } from "./resolveTracks";
-import { sampleWeightedByObscurity } from "./sampler";
-import type { CandidateArtist, DiscoveryDeps, DiscoveryParams, DiscoveryResult } from "./types";
+import { sampleArtistsByObscurity, sampleWeightedByObscurity } from "./sampler";
+import type {
+  CandidateArtist,
+  CandidateWithListeners,
+  DiscoveryDeps,
+  DiscoveryParams,
+  DiscoveryResult,
+  ResolvedCandidateTrack,
+} from "./types";
 
-const DEFAULT_RESULT_COUNT = 24;
+const DEFAULT_RESULT_COUNT = 10;
+
+// How many artists to try resolving previews for per round, relative to how
+// many final results we still need. A buffer over 1x since not every
+// artist's top tracks will have an iTunes preview match. Kept modest (rather
+// than resolving every obscurity-filtered candidate up front, as this used
+// to) because the iTunes Search API is keyless and rate-limited per source
+// IP — see itunes/client.ts — so a single search fanning out 100+ calls at
+// once is exactly what trips that limit.
+const RESOLUTION_BATCH_MULTIPLIER = 1.5;
+const TRACKS_PER_ARTIST = 2;
 
 function dedupeCandidates(candidates: CandidateArtist[]): CandidateArtist[] {
   const seen = new Map<string, CandidateArtist>();
@@ -20,12 +37,45 @@ function dedupeCandidates(candidates: CandidateArtist[]): CandidateArtist[] {
 }
 
 /**
+ * Resolves previews for a growing subset of `pool` until either enough
+ * tracks have survived to fill `resultCount` or the pool is exhausted —
+ * rather than resolving the whole pool unconditionally. Each round pulls a
+ * fresh weighted-random batch of artists not yet tried, so a low iTunes
+ * hit-rate on the first batch is backfilled from the rest of the pool
+ * instead of just returning fewer results than requested.
+ */
+async function resolveWithBackfill(
+  pool: CandidateWithListeners[],
+  resultCount: number,
+  deps: DiscoveryDeps
+): Promise<ResolvedCandidateTrack[]> {
+  let remaining = pool;
+  const resolved: ResolvedCandidateTrack[] = [];
+
+  while (resolved.length < resultCount && remaining.length > 0) {
+    const batchSize = Math.min(remaining.length, Math.ceil(resultCount * RESOLUTION_BATCH_MULTIPLIER));
+    const batch = sampleArtistsByObscurity(remaining, batchSize, deps.rng);
+    const batchKeys = new Set(batch.map((c) => normalizeName(c.name)));
+    remaining = remaining.filter((c) => !batchKeys.has(normalizeName(c.name)));
+
+    const newlyResolved = await resolveTracksWithPreviews(
+      batch,
+      { getTopTracksForArtist: deps.getTopTracksForArtist, findTrackPreview: deps.findTrackPreview },
+      TRACKS_PER_ARTIST
+    );
+    resolved.push(...newlyResolved);
+  }
+
+  return resolved;
+}
+
+/**
  * Full discovery pipeline, no Spotify/login involved anywhere:
  *
  *   tag charts (genre/mood) ─┐
  *                            ├─> merge/dedupe ─> tag filter ─> listener
  *   seed-artist similarity ──┘    lookup ─> obscurity filter ─> resolve
- *   graph walk (optional)         to real tracks + Deezer previews ─>
+ *   graph walk (optional)         to real tracks + iTunes previews ─>
  *                                 weighted-random sample
  *
  * Seed artists and genre/mood tags are both optional inputs but at least
@@ -73,18 +123,16 @@ export async function runDiscoveryPipeline(
 
   // Listener lookups + obscurity filtering happen at the artist level,
   // before the more expensive per-track resolution stage, so we don't waste
-  // Last.fm/Deezer calls resolving tracks for artists we're about to drop.
+  // Last.fm/iTunes calls resolving tracks for artists we're about to drop.
   const withListeners = await annotateWithListeners(tagged, deps.getArtistInfo);
   const withinObscurity = filterByObscurity(withListeners, params.obscuritySlider);
 
-  const resolved = await resolveTracksWithPreviews(withinObscurity, {
-    getTopTracksForArtist: deps.getTopTracksForArtist,
-    findTrackPreview: deps.findTrackPreview,
-  });
+  const resultCount = params.resultCount ?? DEFAULT_RESULT_COUNT;
+  const resolved = await resolveWithBackfill(withinObscurity, resultCount, deps);
 
   console.log(
     `[runDiscoveryPipeline] candidates=${candidates.length} tagged=${tagged.length} withListeners=${withListeners.length} withinObscurity=${withinObscurity.length} resolved=${resolved.length}`
   );
 
-  return sampleWeightedByObscurity(resolved, params.resultCount ?? DEFAULT_RESULT_COUNT, deps.rng);
+  return sampleWeightedByObscurity(resolved, resultCount, deps.rng);
 }

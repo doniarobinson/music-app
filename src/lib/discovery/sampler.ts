@@ -2,6 +2,32 @@ import type { ResolvedCandidateTrack } from "./types";
 
 const DEFAULT_MAX_PER_ARTIST = 2;
 
+/** Shared by both samplers below: A-ES weighted-reservoir key, biased toward lower listener counts. */
+function weightedKey(listeners: number, rng: () => number): number {
+  const weight = 1 / (listeners + 1);
+  const u = rng();
+  const safeU = u <= 0 ? Number.EPSILON : u;
+  return Math.pow(safeU, 1 / weight);
+}
+
+/**
+ * Weighted random sample of artists (not tracks) without replacement, same
+ * obscurity bias as sampleWeightedByObscurity below. Used to pick a modest
+ * subset of candidates to resolve previews for, rather than resolving every
+ * obscurity-filtered candidate up front — the preview API is rate-limited
+ * per source IP, so keeping per-search call volume down matters more here
+ * than at the final track-selection step.
+ */
+export function sampleArtistsByObscurity<T extends { listeners: number }>(
+  candidates: T[],
+  count: number,
+  rng: () => number = Math.random
+): T[] {
+  const keyed = candidates.map((item) => ({ item, key: weightedKey(item.listeners, rng) }));
+  keyed.sort((a, b) => b.key - a.key);
+  return keyed.slice(0, count).map((k) => k.item);
+}
+
 /**
  * Weighted random sample without replacement, biased toward lower listener
  * counts (more obscure), with jitter so repeat runs against identical
@@ -29,13 +55,7 @@ export function sampleWeightedByObscurity<T extends ResolvedCandidateTrack>(
   rng: () => number = Math.random,
   maxPerArtist: number = DEFAULT_MAX_PER_ARTIST
 ): T[] {
-  const keyed = candidates.map((item) => {
-    const weight = 1 / (item.listeners + 1);
-    const u = rng();
-    const safeU = u <= 0 ? Number.EPSILON : u;
-    const key = Math.pow(safeU, 1 / weight);
-    return { item, key };
-  });
+  const keyed = candidates.map((item) => ({ item, key: weightedKey(item.listeners, rng) }));
 
   keyed.sort((a, b) => b.key - a.key);
 

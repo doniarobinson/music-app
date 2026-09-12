@@ -3,14 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ResultCard } from "@/components/ResultCard";
+import { SearchQuotaBadge } from "@/components/SearchQuotaBadge";
 import { Sticker } from "@/components/Sticker";
 import { DISCOVERY_PARAMS_KEY, DISCOVERY_RESULTS_KEY } from "@/lib/discoveryStorage";
+import { useSearchQuota } from "@/lib/useSearchQuota";
 import type { DiscoveryResult } from "@/lib/discovery/types";
 
 export default function ResultsPage() {
   const [results, setResults] = useState<DiscoveryResult[] | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { remaining, dailyLimit, recordSearch } = useSearchQuota();
 
   useEffect(() => {
     // Deliberately reading localStorage in an effect rather than a lazy
@@ -44,6 +47,7 @@ export default function ResultsPage() {
         headers: { "Content-Type": "application/json" },
         body: rawParams,
       });
+      recordSearch();
       const data = await res.json();
       if (!res.ok) {
         if (data.error === "invalid_api_key") {
@@ -102,6 +106,8 @@ export default function ResultsPage() {
           {regenerating ? "Digging…" : "🎲 Regenerate"}
         </button>
       </div>
+
+      <SearchQuotaBadge remaining={remaining} dailyLimit={dailyLimit} />
 
       {error && (
         <p className="text-danger text-center" role="alert">

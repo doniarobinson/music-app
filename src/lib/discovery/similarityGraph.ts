@@ -12,7 +12,7 @@ export interface SimilarityGraphLimits {
 }
 
 // Kept modest on purpose: every candidate here still needs a listener
-// lookup and (if it survives) a top-tracks + Deezer-preview resolution —
+// lookup and (if it survives) a top-tracks + preview resolution —
 // 80 candidates is already generous headroom for a ~24-track final sample,
 // and keeps a full discovery run from taking well over a minute.
 export const DEFAULT_GRAPH_LIMITS: SimilarityGraphLimits = {
