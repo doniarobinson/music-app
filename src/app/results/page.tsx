@@ -110,8 +110,9 @@ export default function ResultsPage() {
           <button
             type="button"
             onClick={() => downloadResultsAsText(results)}
-            className="rounded-full px-4 py-1.5 text-sm text-teal border-2 border-teal-strong
-                       hover:bg-teal-strong hover:text-background transition-colors"
+            className="rounded-full px-6 py-2 font-display text-xl text-background
+                       bg-gradient-to-r from-teal-strong to-purple-strong
+                       transition-transform hover:scale-[1.03]"
           >
             🖥️ Download results to computer
           </button>
