@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { downloadResultsAsText, ExportList } from "@/components/ExportList";
 import { ResultCard } from "@/components/ResultCard";
 import { SearchQuotaBadge } from "@/components/SearchQuotaBadge";
 import { Sticker } from "@/components/Sticker";
@@ -88,26 +89,40 @@ export default function ResultsPage() {
 
   return (
     <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-16 flex flex-col gap-8">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <h1 className="font-display text-4xl flex items-center gap-3">
-          <Sticker kind="burst" color="pink" size={40} rotate={-10} />
-          <span>
-            <span className="text-teal">Your</span> <span className="text-pink">deep cuts</span>
-          </span>
-        </h1>
-        <button
-          type="button"
-          onClick={regenerate}
-          disabled={regenerating}
-          className="rounded-full px-6 py-2 font-display text-xl text-background
-                     bg-gradient-to-r from-teal-strong to-purple-strong
-                     disabled:opacity-40 transition-transform hover:enabled:scale-[1.03]"
-        >
-          {regenerating ? "Digging…" : "🎲 Regenerate"}
-        </button>
-      </div>
+      <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
+        <div className="flex flex-col items-center sm:items-start gap-3">
+          <h1 className="font-display text-4xl flex items-center gap-3">
+            <Sticker kind="burst" color="pink" size={40} rotate={-10} />
+            <span>
+              <span className="text-teal">Your</span> <span className="text-pink">deep cuts</span>
+            </span>
+          </h1>
+          <SearchQuotaBadge remaining={remaining} dailyLimit={dailyLimit} selfAlign="" />
+        </div>
 
-      <SearchQuotaBadge remaining={remaining} dailyLimit={dailyLimit} />
+        <div className="flex flex-col items-center sm:items-end gap-2">
+          <button
+            type="button"
+            onClick={regenerate}
+            disabled={regenerating}
+            className="rounded-full px-6 py-2 font-display text-xl text-background
+                       bg-gradient-to-r from-teal-strong to-purple-strong
+                       disabled:opacity-40 transition-transform hover:enabled:scale-[1.03]"
+          >
+            {regenerating ? "Digging…" : "🎲 Regenerate"}
+          </button>
+          <button
+            type="button"
+            onClick={() => downloadResultsAsText(results)}
+            className="rounded-full px-6 py-2 font-display text-xl text-background
+                       bg-gradient-to-r from-teal-strong to-purple-strong
+                       transition-transform hover:scale-[1.03]"
+          >
+            🖥️ Download results to computer
+          </button>
+          <ExportList results={results} />
+        </div>
+      </div>
 
       {error && (
         <p className="text-danger text-center" role="alert">
