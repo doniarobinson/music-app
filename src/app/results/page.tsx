@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ExportList } from "@/components/ExportList";
+import { downloadResultsAsText, ExportList } from "@/components/ExportList";
 import { ResultCard } from "@/components/ResultCard";
 import { SearchQuotaBadge } from "@/components/SearchQuotaBadge";
 import { Sticker } from "@/components/Sticker";
@@ -96,16 +96,26 @@ export default function ResultsPage() {
             <span className="text-teal">Your</span> <span className="text-pink">deep cuts</span>
           </span>
         </h1>
-        <button
-          type="button"
-          onClick={regenerate}
-          disabled={regenerating}
-          className="rounded-full px-6 py-2 font-display text-xl text-background
-                     bg-gradient-to-r from-teal-strong to-purple-strong
-                     disabled:opacity-40 transition-transform hover:enabled:scale-[1.03]"
-        >
-          {regenerating ? "Digging…" : "🎲 Regenerate"}
-        </button>
+        <div className="flex flex-col items-center sm:items-end gap-2">
+          <button
+            type="button"
+            onClick={regenerate}
+            disabled={regenerating}
+            className="rounded-full px-6 py-2 font-display text-xl text-background
+                       bg-gradient-to-r from-teal-strong to-purple-strong
+                       disabled:opacity-40 transition-transform hover:enabled:scale-[1.03]"
+          >
+            {regenerating ? "Digging…" : "🎲 Regenerate"}
+          </button>
+          <button
+            type="button"
+            onClick={() => downloadResultsAsText(results)}
+            className="rounded-full px-4 py-1.5 text-sm text-teal border-2 border-teal-strong
+                       hover:bg-teal-strong hover:text-background transition-colors"
+          >
+            🖥️ Download results to computer
+          </button>
+        </div>
       </div>
 
       <SearchQuotaBadge remaining={remaining} dailyLimit={dailyLimit} />
