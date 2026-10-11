@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ExportList } from "@/components/ExportList";
 import { ResultCard } from "@/components/ResultCard";
 import { SearchQuotaBadge } from "@/components/SearchQuotaBadge";
 import { Sticker } from "@/components/Sticker";
@@ -108,6 +109,8 @@ export default function ResultsPage() {
       </div>
 
       <SearchQuotaBadge remaining={remaining} dailyLimit={dailyLimit} />
+
+      <ExportList results={results} />
 
       {error && (
         <p className="text-danger text-center" role="alert">
