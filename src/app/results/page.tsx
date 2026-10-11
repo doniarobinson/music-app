@@ -89,13 +89,17 @@ export default function ResultsPage() {
 
   return (
     <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-16 flex flex-col gap-8">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <h1 className="font-display text-4xl flex items-center gap-3">
-          <Sticker kind="burst" color="pink" size={40} rotate={-10} />
-          <span>
-            <span className="text-teal">Your</span> <span className="text-pink">deep cuts</span>
-          </span>
-        </h1>
+      <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
+        <div className="flex flex-col items-center sm:items-start gap-3">
+          <h1 className="font-display text-4xl flex items-center gap-3">
+            <Sticker kind="burst" color="pink" size={40} rotate={-10} />
+            <span>
+              <span className="text-teal">Your</span> <span className="text-pink">deep cuts</span>
+            </span>
+          </h1>
+          <SearchQuotaBadge remaining={remaining} dailyLimit={dailyLimit} selfAlign="" />
+        </div>
+
         <div className="flex flex-col items-center sm:items-end gap-2">
           <button
             type="button"
@@ -116,12 +120,9 @@ export default function ResultsPage() {
           >
             🖥️ Download results to computer
           </button>
+          <ExportList results={results} />
         </div>
       </div>
-
-      <SearchQuotaBadge remaining={remaining} dailyLimit={dailyLimit} />
-
-      <ExportList results={results} />
 
       {error && (
         <p className="text-danger text-center" role="alert">

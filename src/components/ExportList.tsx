@@ -41,11 +41,11 @@ export function ExportList({ results }: { results: DiscoveryResult[] }) {
   }
 
   return (
-    <div className="text-sm">
+    <div>
       <Accordion.Root value={open ? ["list"] : []} onValueChange={(value) => setOpen(value.includes("list"))}>
         <Accordion.Item value="list">
           <Accordion.Header>
-            <Accordion.Trigger className="text-teal underline hover:no-underline">
+            <Accordion.Trigger className="text-base text-teal underline hover:no-underline">
               {open ? "Hide list" : "View list as text"}
             </Accordion.Trigger>
           </Accordion.Header>
