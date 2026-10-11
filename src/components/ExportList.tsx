@@ -44,13 +44,21 @@ export function ExportList({ results }: { results: DiscoveryResult[] }) {
     <div>
       <Accordion.Root value={open ? ["list"] : []} onValueChange={(value) => setOpen(value.includes("list"))}>
         <Accordion.Item value="list">
-          <Accordion.Header>
+          <Accordion.Header className="flex justify-end">
             <Accordion.Trigger className="text-base text-teal underline hover:no-underline">
               {open ? "Hide list" : "View list as text"}
             </Accordion.Trigger>
           </Accordion.Header>
           <Accordion.Panel>
             <div className="mt-3 rounded-xl bg-surface p-4">
+              <a
+                href="https://support.spotify.com/fm/article/importing-your-playlists-to-spotify/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block mb-3 text-teal underline hover:no-underline"
+              >
+                Instructions for import into Spotify ↗
+              </a>
               <pre className="whitespace-pre-wrap break-words text-foreground text-sm">{text}</pre>
               <button
                 type="button"
